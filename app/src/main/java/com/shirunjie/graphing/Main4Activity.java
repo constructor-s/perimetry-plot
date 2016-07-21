@@ -27,15 +27,15 @@ public class Main4Activity extends Activity {
 
         dataView = (PerimetryDataView) findViewById(R.id.data_view);
         PerimetryData entries = new PerimetryData(new ArrayList<Entry>());
-//        for (int i = -27; i <= 27; i += 6) {
-//            for (int j = -27; j <= 27; j += 6) {
-//                if (Math.pow(i, 2) + Math.pow(j, 2) < 750) {
-//                    //                    entries.add(new Entry(i, j, String.format("(%d,%d)", i, j)));
-//                    entries.add(new Entry(i, j, 34));
-//                }
-//            }
-//        }
-        entries.add(new Entry(-15, -3, "34"));
+        for (int i = -27; i <= 27; i += 6) {
+            for (int j = -27; j <= 27; j += 6) {
+                if (Math.pow(i, 2) + Math.pow(j, 2) < 750) {
+                    //                    entries.add(new Entry(i, j, String.format("(%d,%d)", i, j)));
+                    entries.add(new Entry(i, j, 34));
+                }
+            }
+        }
+//        entries.add(new Entry(-15, -3, "34"));
 
         dataView.setBackgroundColor(0xFFFFFFFF);
         dataView.setData(entries);
