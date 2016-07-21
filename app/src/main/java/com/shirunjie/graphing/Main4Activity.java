@@ -27,15 +27,15 @@ public class Main4Activity extends Activity {
 
         dataView = (PerimetryDataView) findViewById(R.id.data_view);
         PerimetryData entries = new PerimetryData(new ArrayList<Entry>());
-        for (int i = -27; i <= 27; i += 6) {
-            for (int j = -27; j <= 27; j += 6) {
-                if (Math.pow(i, 2) + Math.pow(j, 2) < 800) {
-                    //                    entries.add(new Entry(i, j, String.format("(%d,%d)", i, j)));
-                    entries.add(new Entry(i, j, 34));
-                }
-            }
-        }
-        entries.add(new Entry(0, 0, "⊙"));
+//        for (int i = -27; i <= 27; i += 6) {
+//            for (int j = -27; j <= 27; j += 6) {
+//                if (Math.pow(i, 2) + Math.pow(j, 2) < 750) {
+//                    //                    entries.add(new Entry(i, j, String.format("(%d,%d)", i, j)));
+//                    entries.add(new Entry(i, j, 34));
+//                }
+//            }
+//        }
+        entries.add(new Entry(-15, -3, "34"));
 
         dataView.setBackgroundColor(0xFFFFFFFF);
         dataView.setData(entries);
@@ -58,28 +58,29 @@ public class Main4Activity extends Activity {
             public void onGlobalLayout() {
                 dataView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 needSaveImage = false;
-                final AsyncTask<Void, Void, String> saveImageAsyncTask = new AsyncTask<Void, Void, String>() {
-                    private Bitmap b;
-
+                final AsyncTask<Bitmap, Void, String> saveImageAsyncTask = new AsyncTask<Bitmap, Void, String>() {
                     @Override
-                    protected void onPreExecute() {
-                        super.onPreExecute();
-                        b = dataView.getDrawingCache();
-                    }
+                    protected String doInBackground(Bitmap... params) {
+                        if (params != null) {
+                            Bitmap bitmap = params[0];
+                            if (bitmap != null) {
 
-                    @Override
-                    protected String doInBackground(Void... params) {
-                        File sdCard = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                        File file   = new File(sdCard, "image.png");
-                        try {
-                            FileOutputStream fos = new FileOutputStream(file);
-                            b.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                            fos.close();
-                            return file.toString();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            return null;
+                                bitmap = cropBitmap(bitmap);
+
+//                                File sdCard = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                                String sdCard = Environment.getExternalStorageDirectory() + "/Document/html/images/";
+                                File file   = new File(sdCard, "image.png");
+                                try {
+                                    FileOutputStream fos = new FileOutputStream(file);
+                                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                                    fos.close();
+                                    return file.toString();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         }
+                        return null;
                     }
 
                     @Override
@@ -93,9 +94,13 @@ public class Main4Activity extends Activity {
 
                     }
                 };
-                saveImageAsyncTask.execute();
+                saveImageAsyncTask.execute(dataView.getDrawingCache());
             }
         });
+    }
+
+    private static Bitmap cropBitmap(Bitmap bitmap) {
+        return BitmapHelper.cropBorder(bitmap);
     }
 
     @Override

@@ -25,10 +25,9 @@ public class PerimetryData {
     public static final int MINX = 0;
     public static final int MINY = 1;
     public static final int MAXX = 2;
-    public static final int MAXY = 2;
+    public static final int MAXY = 3;
 
     /**
-     *
      * @return {minx, miny, maxx, maxy};
      */
     public double[] getMaxMin() {
@@ -36,10 +35,10 @@ public class PerimetryData {
             Iterator<Entry> iterator = entries.iterator();
             if (iterator.hasNext()) {
                 final Entry firstEntry = iterator.next();
-                double minx = firstEntry.getX();
-                double maxx = firstEntry.getX();
-                double miny = firstEntry.getY();
-                double maxy = firstEntry.getY();
+                double      minx       = firstEntry.getX();
+                double      maxx       = firstEntry.getX();
+                double      miny       = firstEntry.getY();
+                double      maxy       = firstEntry.getY();
 
                 for (; iterator.hasNext(); ) {
                     Entry        entry = iterator.next();
@@ -59,7 +58,7 @@ public class PerimetryData {
                     }
                 }
 
-                return new double[] {minx, miny, maxx, maxy};
+                return new double[]{minx, miny, maxx, maxy};
             }
         }
         return null;
