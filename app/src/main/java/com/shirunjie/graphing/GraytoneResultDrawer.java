@@ -9,10 +9,16 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Created by shirunjie on 2016-07-21.
@@ -97,10 +103,8 @@ public class GraytoneResultDrawer {
         final double centerY = (drawRows / 2.0) * rowHeight + topOffsetPx;
 
 
-
-
         Map<Integer, Map<Integer, Double>> dataMap = mapData(data);
-        Map<Integer, Map<Integer, Double>> newMap = interpolate(dataMap);
+        Map<Integer, Map<Integer, Double>> newMap  = interpolate(dataMap);
 
         PerimetryData iterpData = new PerimetryData(new ArrayList<Entry>());
         for (int x = (int) Math.round(minx); x <= (int) Math.round(maxx); x++) {
@@ -110,23 +114,30 @@ public class GraytoneResultDrawer {
                     final double xDraw = x * columnWidth + centerX;
                     final double yDraw = -y * rowHeight + centerY;
 
-                    int           value = (int) (Math.round(dbValue/2.0) * 2.0 / 40 * 255);
-                    Paint paint = new Paint();
-                    paint.setColor((0xFF << 24) | (value << 16) | (value << 8) | value);
+                    int   grayValue = (int) (dbValue / 40 * 255);
+                    Paint paint     = new Paint();
+                    paint.setColor((0xFF << 24) | (grayValue << 16) | (grayValue << 8) | grayValue);
 
                     int d = (int) Math.ceil(columnWidth / 2);
-                    canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
-                            (float)(xDraw + d), (float)(yDraw + d), paint);
+                    canvas.drawRect((float) (xDraw - d), (float) (yDraw - d),
+                            (float) (xDraw + d), (float) (yDraw + d), paint);
 
-                    iterpData.add(new Entry(x, y, dbValue));
+                    if (grayValue < 0x80) {
+                        paint.setColor(0xFFFFFFFF);
+                    } else {
+                        paint.setColor(0xFF000000);
+                    }
+                    paint.setTextSize(d);
+                    canvas.drawText(String.format("%.0f", dbValue), (float) (xDraw - d), (float) (yDraw), paint);
+
+                    //                    iterpData.add(new Entry(x, y, dbValue));
                 }
 
             }
         }
 
 
-//        new AdaptiveTextResultDrawer(canvas, iterpData, view).draw();
-
+        //        new AdaptiveTextResultDrawer(canvas, iterpData, view).draw();
 
 
         drawVerticalLine((float) centerX, topOffsetPx, bottomOffsetPx);
@@ -149,97 +160,149 @@ public class GraytoneResultDrawer {
             }
             xTick += TICK_INTERVAL;
         }
-//
+        //
         //        List<Rect> rects = new ArrayList<>();
-//        for (Entry entry : iterpData.getEntries()) {
-//            final double x = entry.getX();
-//            final double y = entry.getY();
-//
-//            final double xDraw = x * columnWidth + centerX;
-//            final double yDraw = -y * rowHeight + centerY;
-//
-//            if (entry.getValue() > 0) {
-//                rects.add(new Rect((int) Math.round(xDraw), (int) Math.round(yDraw),
-//                        (int) Math.round(xDraw), (int) Math.round(yDraw)));
-//            }
-//        }
-//
-//
-//        int        increment = (int) getPxFromDp(5);
-//        int        d         = 1;
-//        List<Rect> newRect   = RectHelper.getIncreasedSizeRects(rects, d, d, d, d);
-//        while (RectHelper.isRectsFit(newRect)) {
-//            rects = newRect;
-//            newRect = RectHelper.getIncreasedSizeRects(rects, increment, increment, increment, increment);
-//            d += increment;
-//        }
-//        //        d += increment / 2;
-//
-//        final Paint paint = new Paint();
-//        paint.setColor(0xFF000000);
-//        for (Entry entry : iterpData.getEntries()) {
-//            final double x = entry.getX();
-//            final double y = entry.getY();
-//
-//            final double xDraw = x * columnWidth + centerX;
-//            final double yDraw = -y * rowHeight + centerY;
-//
-//            if (entry.getValue() > 0) {
-//                //                int value = (int) (entry.getValue() / 50 * 255);
-//                //                paint.setColor((0xFF << 24) | (value << 16) | (value << 8) | value);
-//                //                canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
-//                //                        (float)(xDraw + d), (float)(yDraw + d), paint);
-//                int   threshold          = 5;
-//                float dotSpacing  = getPxFromDp(Math.max(threshold, (float) entry.getValue() / 2));
-//                int   nPoints     = Math.round(2 * d / dotSpacing);
-//                float startOffset = 2.0f * d / (nPoints + 1);
-//                for (float i = (float) (startOffset + xDraw - d); i < xDraw + d; i += dotSpacing) {
-//                    for (float j = (float) (startOffset + yDraw - d); j < yDraw + d; j += dotSpacing) {
-//                        float radius = entry.getValue() < threshold ? (float) (threshold - entry.getValue()) : 1;
-//                        canvas.drawCircle(i, j, getPxFromDp(radius), paint);
-//                    }
-//                }
-//            }
-//        }
+        //        for (Entry entry : iterpData.getEntries()) {
+        //            final double x = entry.getX();
+        //            final double y = entry.getY();
+        //
+        //            final double xDraw = x * columnWidth + centerX;
+        //            final double yDraw = -y * rowHeight + centerY;
+        //
+        //            if (entry.getValue() > 0) {
+        //                rects.add(new Rect((int) Math.round(xDraw), (int) Math.round(yDraw),
+        //                        (int) Math.round(xDraw), (int) Math.round(yDraw)));
+        //            }
+        //        }
+        //
+        //
+        //        int        increment = (int) getPxFromDp(5);
+        //        int        d         = 1;
+        //        List<Rect> newRect   = RectHelper.getIncreasedSizeRects(rects, d, d, d, d);
+        //        while (RectHelper.isRectsFit(newRect)) {
+        //            rects = newRect;
+        //            newRect = RectHelper.getIncreasedSizeRects(rects, increment, increment, increment, increment);
+        //            d += increment;
+        //        }
+        //        //        d += increment / 2;
+        //
+        //        final Paint paint = new Paint();
+        //        paint.setColor(0xFF000000);
+        //        for (Entry entry : iterpData.getEntries()) {
+        //            final double x = entry.getX();
+        //            final double y = entry.getY();
+        //
+        //            final double xDraw = x * columnWidth + centerX;
+        //            final double yDraw = -y * rowHeight + centerY;
+        //
+        //            if (entry.getValue() > 0) {
+        //                //                int value = (int) (entry.getValue() / 50 * 255);
+        //                //                paint.setColor((0xFF << 24) | (value << 16) | (value << 8) | value);
+        //                //                canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
+        //                //                        (float)(xDraw + d), (float)(yDraw + d), paint);
+        //                int   threshold          = 5;
+        //                float dotSpacing  = getPxFromDp(Math.max(threshold, (float) entry.getValue() / 2));
+        //                int   nPoints     = Math.round(2 * d / dotSpacing);
+        //                float startOffset = 2.0f * d / (nPoints + 1);
+        //                for (float i = (float) (startOffset + xDraw - d); i < xDraw + d; i += dotSpacing) {
+        //                    for (float j = (float) (startOffset + yDraw - d); j < yDraw + d; j += dotSpacing) {
+        //                        float radius = entry.getValue() < threshold ? (float) (threshold - entry.getValue()) : 1;
+        //                        canvas.drawCircle(i, j, getPxFromDp(radius), paint);
+        //                    }
+        //                }
+        //            }
+        //        }
 
 
     }
 
     private Map<Integer, Map<Integer, Double>> interpolate(Map<Integer, Map<Integer, Double>> dataMap) {
-        Map<Integer, Map<Integer, Double>>                 newMap   = new HashMap<>();
+        Map<Integer, Map<Integer, Double>> newMap = new HashMap<>();
+
         Iterator<Map.Entry<Integer, Map<Integer, Double>>> iterator = dataMap.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<Integer, Map<Integer, Double>> pair = iterator.next();
-            newMap.put(pair.getKey(), new HashMap<Integer, Double>(pair.getValue()));
+            Map.Entry<Integer, Map<Integer, Double>> pair   = iterator.next();
+            int                                      x      = pair.getKey();
+            Map<Integer, Double>                     column = pair.getValue();
+
+            ArrayList<Map.Entry<Integer, Double>> list = new ArrayList<>(column.entrySet());
+            Collections.sort(list, new Comparator<Map.Entry<Integer, Double>>() {
+                @Override
+                public int compare(Map.Entry<Integer, Double> lhs, Map.Entry<Integer, Double> rhs) {
+                    return lhs.getKey() - rhs.getKey();
+                }
+            });
+
+            Iterator<Map.Entry<Integer, Double>> columnIterator = list.iterator();
+            Map.Entry<Integer, Double>           prevEntry      = null;
+            Map.Entry<Integer, Double>           currEntry      = null;
+            while (columnIterator.hasNext()) {
+                if (prevEntry == null) {
+                    // first time
+                    prevEntry = columnIterator.next();
+                } else {
+                    if (currEntry == null) {
+                        // second time
+                        currEntry = columnIterator.next();
+                    } else {
+                        // normal
+                        prevEntry = currEntry;
+                        currEntry = columnIterator.next();
+                    }
+                    int prevY    = prevEntry.getKey();
+                    int currY    = currEntry.getKey();
+                    int distance = currY - prevY;
+                    for (int y = prevY; y <= currY; y++) {
+                        double value =
+                                prevEntry.getValue() * (currY - y) / distance +
+                                        currEntry.getValue() * (y - prevY) / distance;
+                        set(newMap, x, y, value);
+                    }
+                }
+            }
         }
 
-        for (int x = (int) Math.round(minx); x <= (int) Math.round(maxx); x++) {
-            for (int y = (int) Math.round(miny); y <= (int) Math.round(maxy); y++) {
-                Double value = get(dataMap, x, y);
-                if (value == null) {
-                    Entry[] neighbors = findNeighbors(dataMap, x, y, 2, 9);
-                    int nonNull = 0;
-                    for (Entry entry : neighbors) {
-                        if (entry != null) {
-                            nonNull++;
-                        }
+        for (int y = (int) Math.round(miny); y <= (int) Math.round(maxy); y++) {
+            SortedSet<Map.Entry<Integer, Double>> row = new TreeSet<>(new Comparator<Map.Entry<Integer, Double>>() {
+                @Override
+                public int compare(Map.Entry<Integer, Double> lhs, Map.Entry<Integer, Double> rhs) {
+                    return lhs.getKey() - rhs.getKey();
+                }
+            });
+            for (int x = (int) Math.round(minx); x <= (int) Math.round(maxx); x++) {
+                Double value = get(newMap, x, y);
+                if (value != null) {
+                    Map.Entry<Integer, Double> entry = new AbstractMap.SimpleEntry<Integer, Double>(x, value);
+                    row.add(entry);
+                }
+            }
+
+            List<Map.Entry<Integer, Double>> rowList = new ArrayList<>(row);
+
+            Iterator<Map.Entry<Integer, Double>> columnIterator = rowList.iterator();
+            Map.Entry<Integer, Double>           prevEntry      = null;
+            Map.Entry<Integer, Double>           currEntry      = null;
+            while (columnIterator.hasNext()) {
+                if (prevEntry == null) {
+                    // first time
+                    prevEntry = columnIterator.next();
+                } else {
+                    if (currEntry == null) {
+                        // second time
+                        currEntry = columnIterator.next();
+                    } else {
+                        // normal
+                        prevEntry = currEntry;
+                        currEntry = columnIterator.next();
                     }
-                    if (nonNull >= 2) {
-                        double[] weights = new double[neighbors.length];
-                        for (int i = 0; i < neighbors.length; i++) {
-                            Entry entry = neighbors[i];
-                            weights[i] = Math.max(0,
-                                    1 / getDistance(new double[]{entry.getX(), entry.getY()}, new double[]{x, y}));
-                        }
-                        normalize(weights);
-                        double weightedSum = 0;
-                        for (int i = 0; i < neighbors.length; i++) {
-                            Entry entry = neighbors[i];
-                            weightedSum += weights[i] * entry.getValue();
-                        }
-                        if (!Double.isNaN(weightedSum)) {
-                            set(newMap, x, y, weightedSum);
-                        }
+                    int prevX    = prevEntry.getKey();
+                    int currX    = currEntry.getKey();
+                    int distance = currX - prevX;
+                    for (int x = prevX; x <= currX; x++) {
+                        double value =
+                                prevEntry.getValue() * (currX - x) / distance +
+                                        currEntry.getValue() * (x - prevX) / distance;
+                        set(newMap, x, y, value);
                     }
                 }
             }
@@ -248,20 +311,20 @@ public class GraytoneResultDrawer {
     }
 
     private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int n, int maxDist) {
-        Entry[] results = new Entry[n];
-        int stepsOut = 0;
-        int found = 0;
+        Entry[] results  = new Entry[n];
+        int     stepsOut = 0;
+        int     found    = 0;
         while (stepsOut <= maxDist && found < n) {
             stepsOut++;
             for (int dx = 0; dx < stepsOut; dx++) {
                 int dy = stepsOut - dx;
-                for (int xSign = -1; xSign <= (dx!=0 ? 1 : -1); xSign += 2) {
-                    for (int ySign = -1; ySign <= (dy!=0 ? 1 : -1); ySign += 2) {
+                for (int xSign = -1; xSign <= (dx != 0 ? 1 : -1); xSign += 2) {
+                    for (int ySign = -1; ySign <= (dy != 0 ? 1 : -1); ySign += 2) {
                         if (found >= n) {
                             break;
                         }
                         int    xLoc  = x + xSign * dx;
-                        int    yLoc    = y + ySign * dy;
+                        int    yLoc  = y + ySign * dy;
                         Double value = get(dataMap, xLoc, yLoc);
                         if (value != null && value != Double.NaN) {
                             results[found] = new Entry(xLoc, yLoc, value);
@@ -287,56 +350,56 @@ public class GraytoneResultDrawer {
     }
 
 
-//    /**
-//     * @param dataMap
-//     * @param x
-//     * @param y
-//     * @param range
-//     * @return By CSS standard: [top, right, bottom, left]
-//     */
-//    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int range) {
-//        Entry[] result = new Entry[4];
-//        for (int i = x - range / 2; i <= x + range / 2; i++) {
-//            for (int j = y - range / 2; j <= y + range / 2; j++) {
-//                Double value = get(dataMap, i, j);
-//                if (value != null) {
-//                    putValue(result, new Entry(i, j, value), x, y);
-//                }
-//            }
-//        }
-//        return result;
-//    }
-//
-//    private void putValue(Entry[] result, Entry entry, int originX, int originY) {
-//        double shiftedX = entry.getX() - originX;
-//        double shiftedY = entry.getY() - originY;
-//        int index;
-//        if (shiftedY > shiftedX) {
-//            // Top or left
-//            if (shiftedY > -shiftedX) {
-//                index = 0;
-//            } else {
-//                index = 3;
-//            }
-//        } else {
-//            if (shiftedY > -shiftedX) {
-//                index = 1;
-//            } else {
-//                index = 2;
-//            }
-//        }
-//
-//        Entry existing = result[index];
-//        if (existing == null) {
-//            result[index] = entry;
-//        } else {
-//            double currDist = getDistance(new double[]{existing.getX(), existing.getY()}, new double[]{originX, originY});
-//            double newDist = getDistance(new double[]{shiftedX, shiftedY}, new double[]{0, 0});
-//            if (newDist < currDist) {
-//                result[index] = entry;
-//            }
-//        }
-//    }
+    //    /**
+    //     * @param dataMap
+    //     * @param x
+    //     * @param y
+    //     * @param range
+    //     * @return By CSS standard: [top, right, bottom, left]
+    //     */
+    //    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int range) {
+    //        Entry[] result = new Entry[4];
+    //        for (int i = x - range / 2; i <= x + range / 2; i++) {
+    //            for (int j = y - range / 2; j <= y + range / 2; j++) {
+    //                Double value = get(dataMap, i, j);
+    //                if (value != null) {
+    //                    putValue(result, new Entry(i, j, value), x, y);
+    //                }
+    //            }
+    //        }
+    //        return result;
+    //    }
+    //
+    //    private void putValue(Entry[] result, Entry entry, int originX, int originY) {
+    //        double shiftedX = entry.getX() - originX;
+    //        double shiftedY = entry.getY() - originY;
+    //        int index;
+    //        if (shiftedY > shiftedX) {
+    //            // Top or left
+    //            if (shiftedY > -shiftedX) {
+    //                index = 0;
+    //            } else {
+    //                index = 3;
+    //            }
+    //        } else {
+    //            if (shiftedY > -shiftedX) {
+    //                index = 1;
+    //            } else {
+    //                index = 2;
+    //            }
+    //        }
+    //
+    //        Entry existing = result[index];
+    //        if (existing == null) {
+    //            result[index] = entry;
+    //        } else {
+    //            double currDist = getDistance(new double[]{existing.getX(), existing.getY()}, new double[]{originX, originY});
+    //            double newDist = getDistance(new double[]{shiftedX, shiftedY}, new double[]{0, 0});
+    //            if (newDist < currDist) {
+    //                result[index] = entry;
+    //            }
+    //        }
+    //    }
 
     private static double getDistance(double[] point1, double[] point2) {
         if (point1.length == point2.length) {
@@ -355,20 +418,20 @@ public class GraytoneResultDrawer {
     }
 
     //    private Entry findNeighbor(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int dx, int dy) {
-//        return findNeighbor(dataMap, x, y, dx, dy, 0);
-//    }
-//
-//    private Entry findNeighbor(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int dx, int dy, int nTry) {
-//        if (nTry < 7) {
-//            Double value = get(dataMap, x + dx, y + dy);
-//            if (value != null) {
-//                return new Entry(x + dx, y + dy, value);
-//            } else {
-//                return findNeighbor(dataMap, x + dx, y + dy, dx, dy, nTry + 1);
-//            }
-//        }
-//        return null;
-//    }
+    //        return findNeighbor(dataMap, x, y, dx, dy, 0);
+    //    }
+    //
+    //    private Entry findNeighbor(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int dx, int dy, int nTry) {
+    //        if (nTry < 7) {
+    //            Double value = get(dataMap, x + dx, y + dy);
+    //            if (value != null) {
+    //                return new Entry(x + dx, y + dy, value);
+    //            } else {
+    //                return findNeighbor(dataMap, x + dx, y + dy, dx, dy, nTry + 1);
+    //            }
+    //        }
+    //        return null;
+    //    }
 
     @Nullable
     private static Double get(Map<Integer, Map<Integer, Double>> map, int x, int y) {
