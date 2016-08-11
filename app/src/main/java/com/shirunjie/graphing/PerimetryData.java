@@ -8,7 +8,7 @@ import java.util.Iterator;
  * Created by shirunjie on 2016-07-11.
  */
 
-public class PerimetryData {
+public class PerimetryData implements Iterable<Entry>{
     private Collection<Entry> entries;
 
     public PerimetryData(Collection<Entry> entries) {

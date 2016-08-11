@@ -7,7 +7,7 @@ package com.shirunjie.graphing;
 public class Entry {
     private double x;
     private double y;
-    private double value = -1;
+    private double value = Double.NEGATIVE_INFINITY;
     private CharSequence stringLabel = null;
 
     public Entry(float x, float y, double value) {
