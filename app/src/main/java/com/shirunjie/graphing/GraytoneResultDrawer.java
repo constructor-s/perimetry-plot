@@ -11,6 +11,7 @@ import android.view.View;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -114,8 +115,8 @@ public class GraytoneResultDrawer {
                     paint.setColor((0xFF << 24) | (value << 16) | (value << 8) | value);
 
                     int d = (int) Math.ceil(columnWidth / 2);
-//                    canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
-//                            (float)(xDraw + d), (float)(yDraw + d), paint);
+                    canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
+                            (float)(xDraw + d), (float)(yDraw + d), paint);
 
                     iterpData.add(new Entry(x, y, dbValue));
                 }
@@ -124,31 +125,31 @@ public class GraytoneResultDrawer {
         }
 
 
-        new AdaptiveTextResultDrawer(canvas, iterpData, view).draw();
+//        new AdaptiveTextResultDrawer(canvas, iterpData, view).draw();
 
 
 
-//        drawVerticalLine((float) centerX, topOffsetPx, bottomOffsetPx);
-//        drawHorizontalLine((float) centerY, leftOffsetPx, rightOffsetPx);
+        drawVerticalLine((float) centerX, topOffsetPx, bottomOffsetPx);
+        drawHorizontalLine((float) centerY, leftOffsetPx, rightOffsetPx);
+
+        int yTick = (int) (-drawRows / 2.0 / TICK_INTERVAL) * TICK_INTERVAL;
+        while (yTick <= drawRows / 2.0) {
+            if (yTick != 0) {
+                final String label = yTick % (TICK_INTERVAL * 2) == 0 ? String.format("%d", yTick) : null;
+                drawYTick(-yTick * rowHeight + centerY, centerX, label);
+            }
+            yTick += TICK_INTERVAL;
+        }
+
+        int xTick = (int) (-drawColumns / 2.0 / TICK_INTERVAL) * TICK_INTERVAL;
+        while (xTick <= drawColumns / 2.0) {
+            if (xTick != 0) {
+                final String label = xTick % (TICK_INTERVAL * 2) == 0 ? String.format("%d", xTick) : null;
+                drawXTick(xTick * columnWidth + centerX, centerY, label);
+            }
+            xTick += TICK_INTERVAL;
+        }
 //
-//        int yTick = (int) (-drawRows / 2.0 / TICK_INTERVAL) * TICK_INTERVAL;
-//        while (yTick <= drawRows / 2.0) {
-//            if (yTick != 0) {
-//                final String label = yTick % (TICK_INTERVAL * 2) == 0 ? String.format("%d", yTick) : null;
-//                drawYTick(-yTick * rowHeight + centerY, centerX, label);
-//            }
-//            yTick += TICK_INTERVAL;
-//        }
-//
-//        int xTick = (int) (-drawColumns / 2.0 / TICK_INTERVAL) * TICK_INTERVAL;
-//        while (xTick <= drawColumns / 2.0) {
-//            if (xTick != 0) {
-//                final String label = xTick % (TICK_INTERVAL * 2) == 0 ? String.format("%d", xTick) : null;
-//                drawXTick(xTick * columnWidth + centerX, centerY, label);
-//            }
-//            xTick += TICK_INTERVAL;
-//        }
-
         //        List<Rect> rects = new ArrayList<>();
 //        for (Entry entry : iterpData.getEntries()) {
 //            final double x = entry.getX();
@@ -205,64 +206,72 @@ public class GraytoneResultDrawer {
     }
 
     private Map<Integer, Map<Integer, Double>> interpolate(Map<Integer, Map<Integer, Double>> dataMap) {
-        Map<Integer, Map<Integer, Double>> newMap = new HashMap<>(dataMap);
+        Map<Integer, Map<Integer, Double>>                 newMap   = new HashMap<>();
+        Iterator<Map.Entry<Integer, Map<Integer, Double>>> iterator = dataMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, Map<Integer, Double>> pair = iterator.next();
+            newMap.put(pair.getKey(), new HashMap<Integer, Double>(pair.getValue()));
+        }
+
         for (int x = (int) Math.round(minx); x <= (int) Math.round(maxx); x++) {
             for (int y = (int) Math.round(miny); y <= (int) Math.round(maxy); y++) {
                 Double value = get(dataMap, x, y);
                 if (value == null) {
-                    Entry[]  neighbors = findNeighbors(dataMap, x, y, 12);
-                    int nNull = 0;
+                    Entry[] neighbors = findNeighbors(dataMap, x, y, 2, 9);
+                    int nonNull = 0;
                     for (Entry entry : neighbors) {
-                        if (entry == null) {
-                            nNull++;
+                        if (entry != null) {
+                            nonNull++;
                         }
                     }
-                    if (nNull <= 1) {
-                        int      length    = neighbors.length;
-                        double[] weights   = new double[length];
-
-                        double maxWight = -1;
-                        double secondMaxWeight = -1;
-                        for (int i = 0; i < length; i++) {
-                            Entry neighbor = neighbors[i];
-                            if (neighbor != null) {
-                                double distance = getDistance(
-                                        new double[]{neighbor.getX(), neighbor.getY()},
-                                        new double[]{x, y});
-                                weights[i] = Math.max(0, (6 - distance));
-                            } else {
-                                weights[i] = 0;
-                            }
-
-                            if (weights[i] > maxWight) {
-                                maxWight = weights[i];
-                                secondMaxWeight = maxWight;
-                            } else if (weights[i] > secondMaxWeight) {
-                                secondMaxWeight = weights[i];
-                            }
+                    if (nonNull >= 2) {
+                        double[] weights = new double[neighbors.length];
+                        for (int i = 0; i < neighbors.length; i++) {
+                            Entry entry = neighbors[i];
+                            weights[i] = Math.max(0,
+                                    1 / getDistance(new double[]{entry.getX(), entry.getY()}, new double[]{x, y}));
                         }
-
-                        for (int i = 0; i < length; i++) {
-                            if (weights[i] < secondMaxWeight) {
-                                weights[i] = 0;
-                            }
-                        }
-
                         normalize(weights);
-                        double weightedAve = 0;
-                        for (int i = 0; i < length; i++) {
-                            Entry currNeighbor = neighbors[i];
-                            if (currNeighbor != null) {
-                                weightedAve += (weights[i] * currNeighbor.getValue());
-                            }
+                        double weightedSum = 0;
+                        for (int i = 0; i < neighbors.length; i++) {
+                            Entry entry = neighbors[i];
+                            weightedSum += weights[i] * entry.getValue();
                         }
-                        set(newMap, x, y, weightedAve);
+                        if (!Double.isNaN(weightedSum)) {
+                            set(newMap, x, y, weightedSum);
+                        }
                     }
-
                 }
             }
         }
         return newMap;
+    }
+
+    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int n, int maxDist) {
+        Entry[] results = new Entry[n];
+        int stepsOut = 0;
+        int found = 0;
+        while (stepsOut <= maxDist && found < n) {
+            stepsOut++;
+            for (int dx = 0; dx < stepsOut; dx++) {
+                int dy = stepsOut - dx;
+                for (int xSign = -1; xSign <= (dx!=0 ? 1 : -1); xSign += 2) {
+                    for (int ySign = -1; ySign <= (dy!=0 ? 1 : -1); ySign += 2) {
+                        if (found >= n) {
+                            break;
+                        }
+                        int    xLoc  = x + xSign * dx;
+                        int    yLoc    = y + ySign * dy;
+                        Double value = get(dataMap, xLoc, yLoc);
+                        if (value != null && value != Double.NaN) {
+                            results[found] = new Entry(xLoc, yLoc, value);
+                            found++;
+                        }
+                    }
+                }
+            }
+        }
+        return results;
     }
 
     private void normalize(double[] weights) {
@@ -270,62 +279,64 @@ public class GraytoneResultDrawer {
         for (double weight : weights) {
             sum += weight;
         }
-        for (int i = 0; i < weights.length; i++) {
-            weights[i] /= sum;
-        }
-    }
-
-
-    /**
-     * @param dataMap
-     * @param x
-     * @param y
-     * @param range
-     * @return By CSS standard: [top, right, bottom, left]
-     */
-    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int range) {
-        Entry[] result = new Entry[4];
-        for (int i = x - range / 2; i <= x + range / 2; i++) {
-            for (int j = y - range / 2; j <= y + range / 2; j++) {
-                Double value = get(dataMap, i, j);
-                if (value != null) {
-                    putValue(result, new Entry(i, j, value), x, y);
-                }
-            }
-        }
-        return result;
-    }
-
-    private void putValue(Entry[] result, Entry entry, int originX, int originY) {
-        double shiftedX = entry.getX() - originX;
-        double shiftedY = entry.getY() - originY;
-        int index;
-        if (shiftedY > shiftedX) {
-            // Top or left
-            if (shiftedY > -shiftedX) {
-                index = 0;
-            } else {
-                index = 3;
-            }
-        } else {
-            if (shiftedY > -shiftedX) {
-                index = 1;
-            } else {
-                index = 2;
-            }
-        }
-
-        Entry existing = result[index];
-        if (existing == null) {
-            result[index] = entry;
-        } else {
-            double currDist = getDistance(new double[]{existing.getX(), existing.getY()}, new double[]{originX, originY});
-            double newDist = getDistance(new double[]{shiftedX, shiftedY}, new double[]{0, 0});
-            if (newDist < currDist) {
-                result[index] = entry;
+        if (sum > 0) {
+            for (int i = 0; i < weights.length; i++) {
+                weights[i] /= sum;
             }
         }
     }
+
+
+//    /**
+//     * @param dataMap
+//     * @param x
+//     * @param y
+//     * @param range
+//     * @return By CSS standard: [top, right, bottom, left]
+//     */
+//    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int range) {
+//        Entry[] result = new Entry[4];
+//        for (int i = x - range / 2; i <= x + range / 2; i++) {
+//            for (int j = y - range / 2; j <= y + range / 2; j++) {
+//                Double value = get(dataMap, i, j);
+//                if (value != null) {
+//                    putValue(result, new Entry(i, j, value), x, y);
+//                }
+//            }
+//        }
+//        return result;
+//    }
+//
+//    private void putValue(Entry[] result, Entry entry, int originX, int originY) {
+//        double shiftedX = entry.getX() - originX;
+//        double shiftedY = entry.getY() - originY;
+//        int index;
+//        if (shiftedY > shiftedX) {
+//            // Top or left
+//            if (shiftedY > -shiftedX) {
+//                index = 0;
+//            } else {
+//                index = 3;
+//            }
+//        } else {
+//            if (shiftedY > -shiftedX) {
+//                index = 1;
+//            } else {
+//                index = 2;
+//            }
+//        }
+//
+//        Entry existing = result[index];
+//        if (existing == null) {
+//            result[index] = entry;
+//        } else {
+//            double currDist = getDistance(new double[]{existing.getX(), existing.getY()}, new double[]{originX, originY});
+//            double newDist = getDistance(new double[]{shiftedX, shiftedY}, new double[]{0, 0});
+//            if (newDist < currDist) {
+//                result[index] = entry;
+//            }
+//        }
+//    }
 
     private static double getDistance(double[] point1, double[] point2) {
         if (point1.length == point2.length) {
