@@ -27,15 +27,86 @@ public class Main4Activity extends Activity {
 
         dataView = (PerimetryDataView) findViewById(R.id.data_view);
         PerimetryData entries = new PerimetryData(new ArrayList<Entry>());
-        for (int i = -27; i <= 27; i += 6) {
-            for (int j = -27; j <= 27; j += 6) {
-                if (Math.pow(i, 2) + Math.pow(j, 2) < 750) {
-                    //                    entries.add(new Entry(i, j, String.format("(%d,%d)", i, j)));
-                    entries.add(new Entry(i, j, 34));
-                }
-            }
-        }
-//        entries.add(new Entry(-15, -3, "34"));
+//        for (int i = -27; i <= 27; i += 6) {
+//            for (int j = -27; j <= 27; j += 6) {
+//                //                if (Math.pow(i, 2) + Math.pow(j, 2) < 750) {
+////                entries.add(new Entry(i, j, String.format("(%d,%d)", i, j)));
+//                entries.add(new Entry(i, j, (i+20)));
+//                //                }
+//            }
+//        }
+//        entries.add(new Entry(0, 0, "34"));
+//        entries.add(new Entry(-10, 10, "34"));
+
+
+        entries.add(new Entry(-27, -3, 32));
+        entries.add(new Entry(-27, 3, 32));
+
+        entries.add(new Entry(-21, -9, 30));
+        entries.add(new Entry(-21, -3, 31));
+        entries.add(new Entry(-21, 3, 33));
+        entries.add(new Entry(-21, 9, 33));
+
+        entries.add(new Entry(-15, -15, 28));
+        entries.add(new Entry(-15, -9, 32));
+        entries.add(new Entry(-15, -3, 33));
+        entries.add(new Entry(-15, 3, 34));
+        entries.add(new Entry(-15, 9, 32));
+        entries.add(new Entry(-15, 15, 30));
+
+        entries.add(new Entry(-9, -21, 15));
+        entries.add(new Entry(-9, -15, 28));
+        entries.add(new Entry(-9, -9, 32));
+        entries.add(new Entry(-9, -3, 33));
+        entries.add(new Entry(-9, 3, 33));
+        entries.add(new Entry(-9, 9, 32));
+        entries.add(new Entry(-9, 15, 29));
+        entries.add(new Entry(-9, 21, 27));
+
+        entries.add(new Entry(-3, -21, 11));
+        entries.add(new Entry(-3, -15, 29));
+        entries.add(new Entry(-3, -9, 32));
+        entries.add(new Entry(-3, -3, 34));
+        entries.add(new Entry(-3, 3, 35));
+        entries.add(new Entry(-3, 9, 32));
+        entries.add(new Entry(-3, 15, 29));
+        entries.add(new Entry(-3, 21, 29));
+
+        entries.add(new Entry(3, -21, 26));
+        entries.add(new Entry(3, -15, 28));
+        entries.add(new Entry(3, -9, 31));
+        entries.add(new Entry(3, -3, 31));
+        entries.add(new Entry(3, 3, 34));
+        entries.add(new Entry(3, 9, 32));
+        entries.add(new Entry(3, 15, 31));
+        entries.add(new Entry(3, 21, 28));
+
+        entries.add(new Entry(9, -21, 18));
+        entries.add(new Entry(9, -15, 26));
+        entries.add(new Entry(9, -9, 33));
+        entries.add(new Entry(9, -3, 34));
+        entries.add(new Entry(9, 3, 32));
+        entries.add(new Entry(9, 9, 32));
+        entries.add(new Entry(9, 15, 30));
+        entries.add(new Entry(9, 21, 28));
+
+        entries.add(new Entry(15, -15, 26));
+        entries.add(new Entry(15, -9, 27));
+        entries.add(new Entry(15, -3, 6));
+        entries.add(new Entry(15, 3, 1));
+        entries.add(new Entry(15, 9, 32));
+        entries.add(new Entry(15, 15, 30));
+
+        entries.add(new Entry(21, -9, 0));
+        entries.add(new Entry(21, -3, 19));
+        entries.add(new Entry(21, 3, 32));
+        entries.add(new Entry(21, 9, 31));
+
+//        entries.add(new Entry(13, -3, 28));
+//        entries.add(new Entry(15, -3, 0));
+//        entries.add(new Entry(17, -3, 30));
+//        entries.add(new Entry(19, -3, 32));
+//        entries.add(new Entry(21, -3, 34));
 
         dataView.setBackgroundColor(0xFFFFFFFF);
         dataView.setData(entries);
@@ -67,9 +138,10 @@ public class Main4Activity extends Activity {
 
                                 bitmap = cropBitmap(bitmap);
 
-//                                File sdCard = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                                //                                File sdCard = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
                                 String sdCard = Environment.getExternalStorageDirectory() + "/Document/html/images/";
-                                File file   = new File(sdCard, "image.png");
+                                File   file   = new File(sdCard, "image.png");
+                                file.getParentFile().mkdirs();
                                 try {
                                     FileOutputStream fos = new FileOutputStream(file);
                                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);

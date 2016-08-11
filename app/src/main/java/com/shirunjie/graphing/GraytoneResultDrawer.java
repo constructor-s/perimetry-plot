@@ -8,11 +8,14 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by shirunjie on 2016-07-21.
  */
-public class TextResultDrawer {
-    private static final String TAG           = TextResultDrawer.class.getSimpleName();
+public class GraytoneResultDrawer {
+    private static final String TAG           = GraytoneResultDrawer.class.getSimpleName();
     public static final  int    TICK_INTERVAL = 5;
     private final float AXIS_LABEL_TEXTSIZE;
     private final float BORDER;
@@ -28,14 +31,14 @@ public class TextResultDrawer {
     private double maxx;
     private double maxy;
 
-    public TextResultDrawer(Canvas canvas, PerimetryData data, View view) {
+    public GraytoneResultDrawer(Canvas canvas, PerimetryData data, View view) {
 
         this.canvas = canvas;
         this.data = data;
         this.view = view;
 
         STROKE_WIDTH = getPxFromDp(2);
-        BORDER = getPxFromDp(10);
+        BORDER = getPxFromDp(30);
         TICK_LENGTH = getPxFromDp(8);
         AXIS_LABEL_TEXTSIZE = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 10, view.getResources().getDisplayMetrics());
 
@@ -111,11 +114,7 @@ public class TextResultDrawer {
             xTick += TICK_INTERVAL;
         }
 
-        //            Log.d(TAG, String.format("draw: Rows: %d, Columns %d, CenterX: %.3f, CenterY: %.3f",
-        //                    rows, columns, centerX, centerY));
-        //            Log.d(TAG, String.format("draw: getWidth(): %d, getHeight(): %d", view.getWidth(), view.getHeight()));
-        //            Log.d(TAG, "draw: " + view.getResources().getDisplayMetrics());
-
+        List<Rect> rects = new ArrayList<>();
         for (Entry entry : data.getEntries()) {
             final double x = entry.getX();
             final double y = entry.getY();
@@ -123,22 +122,51 @@ public class TextResultDrawer {
             final double xDraw = x * columnWidth + centerX;
             final double yDraw = -y * rowHeight + centerY;
 
-            CharSequence dispStr = entry.getStringLabel();
-            if (dispStr == null) {
-                dispStr = String.format("%.0f", entry.getValue());
+            if (entry.getValue() > 0) {
+                rects.add(new Rect((int) Math.round(xDraw), (int) Math.round(yDraw),
+                        (int) Math.round(xDraw), (int) Math.round(yDraw)));
             }
-
-            final Paint paint    = new Paint();
-            final float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,  26, view.getResources().getDisplayMetrics());
-            paint.setTextSize(textSize);
-
-            Rect bounds     = getTextRectBounds(dispStr, paint);
-            int  textHeight = bounds.height();
-            int  textWidth  = bounds.width();
-            canvas.drawText(dispStr, 0, dispStr.length(),
-                    (float) xDraw - textWidth * 0.5f, (float) yDraw + textHeight * 0.5f,
-                    paint);
         }
+
+
+        int        increment = (int) getPxFromDp(5);
+        int        d         = 1;
+        List<Rect> newRect   = RectHelper.getIncreasedSizeRects(rects, d, d, d, d);
+        while (RectHelper.isRectsFit(newRect)) {
+            rects = newRect;
+            newRect = RectHelper.getIncreasedSizeRects(rects, increment, increment, increment, increment);
+            d += increment;
+        }
+        //        d += increment / 2;
+
+        final Paint paint = new Paint();
+        paint.setColor(0xFF000000);
+        for (Entry entry : data.getEntries()) {
+            final double x = entry.getX();
+            final double y = entry.getY();
+
+            final double xDraw = x * columnWidth + centerX;
+            final double yDraw = -y * rowHeight + centerY;
+
+            if (entry.getValue() > 0) {
+                //                int value = (int) (entry.getValue() / 50 * 255);
+                //                paint.setColor((0xFF << 24) | (value << 16) | (value << 8) | value);
+                //                canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
+                //                        (float)(xDraw + d), (float)(yDraw + d), paint);
+                int   threshold          = 5;
+                float dotSpacing  = getPxFromDp(Math.max(threshold, (float) entry.getValue() / 2));
+                int   nPoints     = Math.round(2 * d / dotSpacing);
+                float startOffset = 2.0f * d / (nPoints + 1);
+                for (float i = (float) (startOffset + xDraw - d); i < xDraw + d; i += dotSpacing) {
+                    for (float j = (float) (startOffset + yDraw - d); j < yDraw + d; j += dotSpacing) {
+                        float radius = entry.getValue() < threshold ? (float) (threshold - entry.getValue()) : 1;
+                        canvas.drawCircle(i, j, getPxFromDp(radius), paint);
+                    }
+                }
+            }
+        }
+
+
     }
 
     @NonNull

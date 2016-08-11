@@ -33,7 +33,8 @@ public class PerimetryDataView extends View {
     protected void onDraw(final Canvas canvas) {
         super.onDraw(canvas);
         if (data != null) {
-            new TextResultDrawer(canvas, data, this).draw();
+//            new AdaptiveTextResultDrawer(canvas, data, this).draw();
+            new GraytoneResultDrawer(canvas, data, this).draw();
         }
     }
 

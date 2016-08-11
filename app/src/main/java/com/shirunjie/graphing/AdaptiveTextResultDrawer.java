@@ -3,16 +3,21 @@ package com.shirunjie.graphing;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.support.annotation.NonNull;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by shirunjie on 2016-07-21.
  */
-public class TextResultDrawer {
-    private static final String TAG           = TextResultDrawer.class.getSimpleName();
+public class AdaptiveTextResultDrawer {
+    private static final String TAG           = AdaptiveTextResultDrawer.class.getSimpleName();
     public static final  int    TICK_INTERVAL = 5;
     private final float AXIS_LABEL_TEXTSIZE;
     private final float BORDER;
@@ -27,8 +32,12 @@ public class TextResultDrawer {
     private double miny;
     private double maxx;
     private double maxy;
+    private double columnWidth;
+    private double rowHeight;
+    private double centerX;
+    private double centerY;
 
-    public TextResultDrawer(Canvas canvas, PerimetryData data, View view) {
+    public AdaptiveTextResultDrawer(Canvas canvas, PerimetryData data, View view) {
 
         this.canvas = canvas;
         this.data = data;
@@ -83,12 +92,10 @@ public class TextResultDrawer {
         topOffsetPx = bottomOffsetPx = (view.getHeight() - drawHeight) / 2;
 
         // Adjust for aspect ratio
-        double columnWidth;
-        double rowHeight;
         columnWidth = rowHeight = drawHeight / columns;
 
-        final double centerX = (drawColumns / 2.0) * columnWidth + leftOffsetPx;
-        final double centerY = (drawRows / 2.0) * rowHeight + topOffsetPx;
+        centerX = (drawColumns / 2.0) * columnWidth + leftOffsetPx;
+        centerY = (drawRows / 2.0) * rowHeight + topOffsetPx;
 
         drawVerticalLine((float) centerX, topOffsetPx, bottomOffsetPx);
         drawHorizontalLine((float) centerY, leftOffsetPx, rightOffsetPx);
@@ -111,11 +118,46 @@ public class TextResultDrawer {
             xTick += TICK_INTERVAL;
         }
 
-        //            Log.d(TAG, String.format("draw: Rows: %d, Columns %d, CenterX: %.3f, CenterY: %.3f",
-        //                    rows, columns, centerX, centerY));
-        //            Log.d(TAG, String.format("draw: getWidth(): %d, getHeight(): %d", view.getWidth(), view.getHeight()));
-        //            Log.d(TAG, "draw: " + view.getResources().getDisplayMetrics());
+        double adaptiveTextSize = getAdaptiveTextSize();
 
+        final Paint paint    = new Paint();
+        final float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, (float)adaptiveTextSize, view.getResources().getDisplayMetrics());
+        paint.setTextSize(textSize);
+        paint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL));
+        for (Entry entry : data.getEntries()) {
+            final double x = entry.getX();
+            final double y = entry.getY();
+
+            final double xDraw = x * columnWidth + centerX;
+            final double yDraw = -y * rowHeight + centerY;
+
+            CharSequence dispStr = entry.getStringLabel();
+            if (dispStr == null) {
+                dispStr = String.format("%.0f", entry.getValue());
+            }
+
+
+
+
+            Rect bounds     = getTextRectBounds(dispStr, paint);
+            int  textHeight = bounds.height();
+            int  textWidth  = bounds.width();
+            canvas.drawText(dispStr, 0, dispStr.length(),
+                    (float) xDraw - textWidth * 0.5f, (float) yDraw + textHeight * 0.5f,
+                    paint);
+        }
+
+    }
+
+    private double getAdaptiveTextSize() {
+        return getAdaptiveTextSize(0);
+    }
+
+    private double getAdaptiveTextSize(double minSize) {
+        final int offset = 0;
+        final int step = 2;
+
+        List<RectF> rectFs = new ArrayList<>();
         for (Entry entry : data.getEntries()) {
             final double x = entry.getX();
             final double y = entry.getY();
@@ -129,15 +171,18 @@ public class TextResultDrawer {
             }
 
             final Paint paint    = new Paint();
-            final float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,  26, view.getResources().getDisplayMetrics());
+            final float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, (float)minSize + offset, view.getResources().getDisplayMetrics());
             paint.setTextSize(textSize);
 
-            Rect bounds     = getTextRectBounds(dispStr, paint);
-            int  textHeight = bounds.height();
-            int  textWidth  = bounds.width();
-            canvas.drawText(dispStr, 0, dispStr.length(),
-                    (float) xDraw - textWidth * 0.5f, (float) yDraw + textHeight * 0.5f,
-                    paint);
+            RectF bounds     = new RectF(getTextRectBounds(dispStr, paint));
+            bounds.offset((float)xDraw, (float)yDraw);
+            rectFs.add(bounds);
+        }
+        if (RectFHelper.isRectsFit(rectFs)) {
+            return getAdaptiveTextSize(minSize + step);
+        } else {
+            double size = minSize - step;
+            return Math.max(0, size) * (0.382 * Math.exp(-0.1 * size) + 0.618);
         }
     }
 
