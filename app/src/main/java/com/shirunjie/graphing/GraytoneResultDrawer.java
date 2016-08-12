@@ -25,11 +25,12 @@ import java.util.TreeSet;
  */
 public class GraytoneResultDrawer {
     private static final String TAG           = GraytoneResultDrawer.class.getSimpleName();
-    public static final  int    TICK_INTERVAL = 5;
+    private static final int    TICK_INTERVAL = 5;
     private final float AXIS_LABEL_TEXTSIZE;
     private final float BORDER;
     private final float STROKE_WIDTH;
     private final float TICK_LENGTH;
+    private final float POINT_SIZE;
 
     private final View          view;
     private final PerimetryData data;
@@ -39,6 +40,7 @@ public class GraytoneResultDrawer {
     private double miny;
     private double maxx;
     private double maxy;
+    private Paint paint = new Paint();
 
     public GraytoneResultDrawer(Canvas canvas, PerimetryData data, View view) {
 
@@ -50,6 +52,7 @@ public class GraytoneResultDrawer {
         BORDER = getPxFromDp(30);
         TICK_LENGTH = getPxFromDp(8);
         AXIS_LABEL_TEXTSIZE = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 10, view.getResources().getDisplayMetrics());
+        POINT_SIZE = getPxFromDp(1);
 
         findMinAndMax();
     }
@@ -103,41 +106,71 @@ public class GraytoneResultDrawer {
         final double centerY = (drawRows / 2.0) * rowHeight + topOffsetPx;
 
 
+        // Interpolate data
         Map<Integer, Map<Integer, Double>> dataMap = mapData(data);
         Map<Integer, Map<Integer, Double>> newMap  = interpolate(dataMap);
 
-        PerimetryData iterpData = new PerimetryData(new ArrayList<Entry>());
+        // Draw
+        double cellHalfWidth = columnWidth / 2;
         for (int x = (int) Math.round(minx); x <= (int) Math.round(maxx); x++) {
             for (int y = (int) Math.round(miny); y <= (int) Math.round(maxy); y++) {
-                Double dbValue = get(newMap, x, y);
-                if (dbValue != null) {
-                    final double xDraw = x * columnWidth + centerX;
-                    final double yDraw = -y * rowHeight + centerY;
+                // Leave out space for axes
+                if (x != 0 && y != 0) {
+                    Double dbValue = get(newMap, x, y);
+                    if (dbValue != null) {
+                        final double xDraw = x * columnWidth + centerX;
+                        final double yDraw = -y * rowHeight + centerY;
 
-                    int   grayValue = (int) (dbValue / 40 * 255);
-                    Paint paint     = new Paint();
-                    paint.setColor((0xFF << 24) | (grayValue << 16) | (grayValue << 8) | grayValue);
+//                        int grayValue = (int) (dbValue / 40 * 255);
+//                        paint.setColor((0xFF << 24) | (grayValue << 16) | (grayValue << 8) | grayValue);
 
-                    int d = (int) Math.ceil(columnWidth / 2);
-                    canvas.drawRect((float) (xDraw - d), (float) (yDraw - d),
-                            (float) (xDraw + d), (float) (yDraw + d), paint);
 
-                    if (grayValue < 0x80) {
-                        paint.setColor(0xFFFFFFFF);
-                    } else {
-                        paint.setColor(0xFF000000);
+                        //                    canvas.drawRect((float) (xDraw - cellHalfWidth), (float) (yDraw - cellHalfWidth),
+                        //                            (float) (xDraw + cellHalfWidth), (float) (yDraw + cellHalfWidth), paint);
+
+                        paint.setColor(0xFF << 24);
+                        //                    for (int xLoc = (int) xDraw - cellHalfWidth; xLoc < xDraw + cellHalfWidth; xLoc++) {
+                        //                        for (int yLoc = (int) yDraw - cellHalfWidth; yLoc < yDraw + cellHalfWidth; yLoc++) {
+                        //                            if (Math.random() > dbValue / 40) {
+                        //                                canvas.drawPoint(xLoc, yLoc, paint);
+                        //                            }
+                        //                        }
+                        //                    }
+
+
+                        // Calculate spacing between points
+                        double spacing = Math.max(1, Math.min(1.05, (dbValue / 30.5)) * cellHalfWidth);
+                        float pointSizeFactor = (float) Math.min(Math.max((30.5 - dbValue) / 5, 1), 1.8);
+                        // Draw starting from each cell's center
+                        for (double dx = 0; dx <= cellHalfWidth; dx += spacing) {
+                            for (double dy = 0; dy <= cellHalfWidth; dy += spacing) {
+                                //                            for (int i = 0; i < pointSize; i++) {
+                                //                                for (int j = 0; j < pointSize; j++) {
+                                //                                    pts.add(dx + i);
+                                //                                    pts.add(dy + j);
+                                //                                }
+                                //                            }
+                                //                            canvas.drawCircle((float) (xDraw), (float) (yDraw), pointSize / 2, paint);
+                                canvas.drawCircle((float) (xDraw + dx), (float) (yDraw + dy), POINT_SIZE / 2 * pointSizeFactor, paint);
+                                canvas.drawCircle((float) (xDraw - dx), (float) (yDraw + dy), POINT_SIZE / 2 * pointSizeFactor, paint);
+                                canvas.drawCircle((float) (xDraw + dx), (float) (yDraw - dy), POINT_SIZE / 2 * pointSizeFactor, paint);
+                                canvas.drawCircle((float) (xDraw - dx), (float) (yDraw - dy), POINT_SIZE / 2 * pointSizeFactor, paint);
+
+                            }
+                        }
+
+                        //                    if (grayValue < 0x80) {
+                        //                        paint.setColor(0xFFFFFFFF);
+                        //                    } else {
+                        //                        paint.setColor(0xFF000000);
+                        //                    }
+                        //                    paint.setTextSize(cellHalfWidth);
+                        //                    canvas.drawText(String.format("%.0f", dbValue), (float) (xDraw - cellHalfWidth), (float) (yDraw), paint);
                     }
-                    paint.setTextSize(d);
-                    canvas.drawText(String.format("%.0f", dbValue), (float) (xDraw - d), (float) (yDraw), paint);
 
-                    //                    iterpData.add(new Entry(x, y, dbValue));
                 }
-
             }
         }
-
-
-        //        new AdaptiveTextResultDrawer(canvas, iterpData, view).draw();
 
 
         drawVerticalLine((float) centerX, topOffsetPx, bottomOffsetPx);
@@ -160,58 +193,6 @@ public class GraytoneResultDrawer {
             }
             xTick += TICK_INTERVAL;
         }
-        //
-        //        List<Rect> rects = new ArrayList<>();
-        //        for (Entry entry : iterpData.getEntries()) {
-        //            final double x = entry.getX();
-        //            final double y = entry.getY();
-        //
-        //            final double xDraw = x * columnWidth + centerX;
-        //            final double yDraw = -y * rowHeight + centerY;
-        //
-        //            if (entry.getValue() > 0) {
-        //                rects.add(new Rect((int) Math.round(xDraw), (int) Math.round(yDraw),
-        //                        (int) Math.round(xDraw), (int) Math.round(yDraw)));
-        //            }
-        //        }
-        //
-        //
-        //        int        increment = (int) getPxFromDp(5);
-        //        int        d         = 1;
-        //        List<Rect> newRect   = RectHelper.getIncreasedSizeRects(rects, d, d, d, d);
-        //        while (RectHelper.isRectsFit(newRect)) {
-        //            rects = newRect;
-        //            newRect = RectHelper.getIncreasedSizeRects(rects, increment, increment, increment, increment);
-        //            d += increment;
-        //        }
-        //        //        d += increment / 2;
-        //
-        //        final Paint paint = new Paint();
-        //        paint.setColor(0xFF000000);
-        //        for (Entry entry : iterpData.getEntries()) {
-        //            final double x = entry.getX();
-        //            final double y = entry.getY();
-        //
-        //            final double xDraw = x * columnWidth + centerX;
-        //            final double yDraw = -y * rowHeight + centerY;
-        //
-        //            if (entry.getValue() > 0) {
-        //                //                int value = (int) (entry.getValue() / 50 * 255);
-        //                //                paint.setColor((0xFF << 24) | (value << 16) | (value << 8) | value);
-        //                //                canvas.drawRect((float)(xDraw - d), (float)(yDraw - d),
-        //                //                        (float)(xDraw + d), (float)(yDraw + d), paint);
-        //                int   threshold          = 5;
-        //                float dotSpacing  = getPxFromDp(Math.max(threshold, (float) entry.getValue() / 2));
-        //                int   nPoints     = Math.round(2 * d / dotSpacing);
-        //                float startOffset = 2.0f * d / (nPoints + 1);
-        //                for (float i = (float) (startOffset + xDraw - d); i < xDraw + d; i += dotSpacing) {
-        //                    for (float j = (float) (startOffset + yDraw - d); j < yDraw + d; j += dotSpacing) {
-        //                        float radius = entry.getValue() < threshold ? (float) (threshold - entry.getValue()) : 1;
-        //                        canvas.drawCircle(i, j, getPxFromDp(radius), paint);
-        //                    }
-        //                }
-        //            }
-        //        }
 
 
     }
@@ -272,7 +253,7 @@ public class GraytoneResultDrawer {
             for (int x = (int) Math.round(minx); x <= (int) Math.round(maxx); x++) {
                 Double value = get(newMap, x, y);
                 if (value != null) {
-                    Map.Entry<Integer, Double> entry = new AbstractMap.SimpleEntry<Integer, Double>(x, value);
+                    Map.Entry<Integer, Double> entry = new AbstractMap.SimpleEntry<>(x, value);
                     row.add(entry);
                 }
             }
@@ -310,44 +291,44 @@ public class GraytoneResultDrawer {
         return newMap;
     }
 
-    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int n, int maxDist) {
-        Entry[] results  = new Entry[n];
-        int     stepsOut = 0;
-        int     found    = 0;
-        while (stepsOut <= maxDist && found < n) {
-            stepsOut++;
-            for (int dx = 0; dx < stepsOut; dx++) {
-                int dy = stepsOut - dx;
-                for (int xSign = -1; xSign <= (dx != 0 ? 1 : -1); xSign += 2) {
-                    for (int ySign = -1; ySign <= (dy != 0 ? 1 : -1); ySign += 2) {
-                        if (found >= n) {
-                            break;
-                        }
-                        int    xLoc  = x + xSign * dx;
-                        int    yLoc  = y + ySign * dy;
-                        Double value = get(dataMap, xLoc, yLoc);
-                        if (value != null && value != Double.NaN) {
-                            results[found] = new Entry(xLoc, yLoc, value);
-                            found++;
-                        }
-                    }
-                }
-            }
-        }
-        return results;
-    }
-
-    private void normalize(double[] weights) {
-        double sum = 0;
-        for (double weight : weights) {
-            sum += weight;
-        }
-        if (sum > 0) {
-            for (int i = 0; i < weights.length; i++) {
-                weights[i] /= sum;
-            }
-        }
-    }
+//    private Entry[] findNeighbors(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int n, int maxDist) {
+//        Entry[] results  = new Entry[n];
+//        int     stepsOut = 0;
+//        int     found    = 0;
+//        while (stepsOut <= maxDist && found < n) {
+//            stepsOut++;
+//            for (int dx = 0; dx < stepsOut; dx++) {
+//                int dy = stepsOut - dx;
+//                for (int xSign = -1; xSign <= (dx != 0 ? 1 : -1); xSign += 2) {
+//                    for (int ySign = -1; ySign <= (dy != 0 ? 1 : -1); ySign += 2) {
+//                        if (found >= n) {
+//                            break;
+//                        }
+//                        int    xLoc  = x + xSign * dx;
+//                        int    yLoc  = y + ySign * dy;
+//                        Double value = get(dataMap, xLoc, yLoc);
+//                        if (value != null && value != Double.NaN) {
+//                            results[found] = new Entry(xLoc, yLoc, value);
+//                            found++;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        return results;
+//    }
+//
+//    private void normalize(double[] weights) {
+//        double sum = 0;
+//        for (double weight : weights) {
+//            sum += weight;
+//        }
+//        if (sum > 0) {
+//            for (int i = 0; i < weights.length; i++) {
+//                weights[i] /= sum;
+//            }
+//        }
+//    }
 
 
     //    /**
@@ -401,21 +382,21 @@ public class GraytoneResultDrawer {
     //        }
     //    }
 
-    private static double getDistance(double[] point1, double[] point2) {
-        if (point1.length == point2.length) {
-            double sum = 0;
-            for (int i = 0; i < point1.length; i++) {
-                sum += Math.pow(point1[i] - point2[i], 2);
-            }
-            return Math.sqrt(sum);
-        } else {
-            if (BuildConfig.DEBUG) {
-                throw new IndexOutOfBoundsException("Coordinate arguments must be of the same length");
-            } else {
-                return -1;
-            }
-        }
-    }
+//    private static double getDistance(double[] point1, double[] point2) {
+//        if (point1.length == point2.length) {
+//            double sum = 0;
+//            for (int i = 0; i < point1.length; i++) {
+//                sum += Math.pow(point1[i] - point2[i], 2);
+//            }
+//            return Math.sqrt(sum);
+//        } else {
+//            if (BuildConfig.DEBUG) {
+//                throw new IndexOutOfBoundsException("Coordinate arguments must be of the same length");
+//            } else {
+//                return -1;
+//            }
+//        }
+//    }
 
     //    private Entry findNeighbor(Map<Integer, Map<Integer, Double>> dataMap, int x, int y, int dx, int dy) {
     //        return findNeighbor(dataMap, x, y, dx, dy, 0);
